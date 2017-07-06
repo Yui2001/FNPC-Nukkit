@@ -2,7 +2,7 @@ name: FNPC
 main: net.FENGberd.Nukkit.FNPC.Main
 version: "1.1.7"
 api: ["1.0.0"]
-author: "FENGberd"
+author: "FENGberd Yui "
 description: "A simple NPC plugin."
 permissions:
  FNPC.*:
