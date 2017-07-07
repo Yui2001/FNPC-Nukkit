@@ -1,58 +1,78 @@
 package net.FENGberd.Nukkit.FNPC.commands;
 
-import cn.nukkit.*;
-import cn.nukkit.item.*;
-import cn.nukkit.lang.*;
-import cn.nukkit.utils.*;
-import cn.nukkit.command.*;
-import cn.nukkit.command.data.*;
-
-import net.FENGberd.Nukkit.FNPC.*;
-import net.FENGberd.Nukkit.FNPC.npc.*;
-import net.FENGberd.Nukkit.FNPC.utils.*;
-import net.FENGberd.Nukkit.FNPC.tasks.*;
+import cn.nukkit.Player;
+import cn.nukkit.Server;
+import cn.nukkit.command.Command;
+import cn.nukkit.command.CommandSender;
+import cn.nukkit.command.data.CommandData;
+import cn.nukkit.command.data.CommandDataVersions;
+import cn.nukkit.command.data.CommandOverload;
+import cn.nukkit.command.data.CommandParameter;
+import cn.nukkit.item.Item;
+import cn.nukkit.lang.TranslationContainer;
+import cn.nukkit.utils.TextFormat;
+import net.FENGberd.Nukkit.FNPC.Main;
+import net.FENGberd.Nukkit.FNPC.npc.CommandNPC;
+import net.FENGberd.Nukkit.FNPC.npc.NPC;
+import net.FENGberd.Nukkit.FNPC.npc.ReplyNPC;
+import net.FENGberd.Nukkit.FNPC.npc.TeleportNPC;
+import net.FENGberd.Nukkit.FNPC.utils.RegisteredNPC;
 import net.FENGberd.Nukkit.FNPC.utils.Utils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class NpcCommand extends Command
 {
 	public NpcCommand()
 	{
 		super("fnpc","");
+		setUsage("/fnpc");
 		this.setPermission("FNPC.command.fnpc");
-		this.setAliases(new String[]
-		{
-			"npc"
-		});
 		this.commandParameters.clear();
 		this.commandParameters.put("add",new CommandParameter[]
 		{
 			new CommandParameter("Type",CommandParameter.ARG_TYPE_STRING,false),
 			new CommandParameter("ID",CommandParameter.ARG_TYPE_STRING,false),
-			new CommandParameter("Name",CommandParameter.ARG_TYPE_STRING,false)
+			new CommandParameter("Name",false)
 		});
 		this.commandParameters.put("remove",new CommandParameter[]
 		{
 			new CommandParameter("ID",CommandParameter.ARG_TYPE_STRING,false)
 		});
+		this.commandParameters.put("equipment",new CommandParameter[]
+				{
+						new CommandParameter("ID",CommandParameter.ARG_TYPE_STRING,false)
+				});
+		this.commandParameters.put("scale",new CommandParameter[]
+				{
+						new CommandParameter("ID",CommandParameter.ARG_TYPE_STRING,false),
+						new CommandParameter("Scale",false)
+				});
 		this.commandParameters.put("type",new CommandParameter[0]);
 		this.commandParameters.put("skin",new CommandParameter[]
 		{
 			new CommandParameter("ID",CommandParameter.ARG_TYPE_STRING,false),
-			new CommandParameter("File",CommandParameter.ARG_TYPE_STRING,false)
+			new CommandParameter("File",false)
 		});
 		this.commandParameters.put("name",new CommandParameter[]
 		{
 			new CommandParameter("ID",CommandParameter.ARG_TYPE_STRING,false),
-			new CommandParameter("Name",CommandParameter.ARG_TYPE_STRING,false)
+			new CommandParameter("Name",false)
 		});
 		this.commandParameters.put("command",new CommandParameter[]
 		{
 			new CommandParameter("ID",CommandParameter.ARG_TYPE_STRING,false),
-			new CommandParameter("add|remove",CommandParameter.ARG_TYPE_STRING_ENUM,false),
-			new CommandParameter("Command",CommandParameter.ARG_TYPE_STRING,false)
+			new CommandParameter("add|remove",CommandParameter.ARG_TYPE_STRING,false),
+			new CommandParameter("Command",false)
 		});
+		this.commandParameters.put("chat",new CommandParameter[]
+				{
+						new CommandParameter("ID",CommandParameter.ARG_TYPE_STRING,false),
+						new CommandParameter("add|remove",CommandParameter.ARG_TYPE_STRING,false),
+						new CommandParameter("Chat",false)
+				});
 		// TODO: command <ID> list
 		this.commandParameters.put("tphere",new CommandParameter[]
 		{
@@ -81,7 +101,7 @@ public class NpcCommand extends Command
 		this.commandParameters.put("item",new CommandParameter[]
 		{
 			new CommandParameter("ID",CommandParameter.ARG_TYPE_STRING,false),
-			new CommandParameter("Item[:Damage]",CommandParameter.ARG_TYPE_STRING,false)
+			new CommandParameter("Item[:Damage]",CommandParameter.ARG_TYPE_STRING,true)
 		});
 		this.commandParameters.put("help",new CommandParameter[0]);
 	}
@@ -110,9 +130,26 @@ public class NpcCommand extends Command
 					sender.sendMessage(data[0]);
 				}
 				break;
+			case "equipment": {
+				if(args.length<2)
+				{
+					sender.sendMessage("请输入完整指令");
+					return false;
+				}
+				Item[] armor = ((Player) sender).getInventory().getArmorContents();
+				npc = NPC.pool.getOrDefault(args[1], null);
+				if (npc == null) {
+					sender.sendMessage("[NPC] " + TextFormat.RED + "不存在此NPC");
+				}
+				npc.setEquipment(armor);
+				sender.sendMessage("成功设置装备");
+			}
+			break;
 			case "add":
 				if(args.length<4)
 				{
+					sender.sendMessage(String.valueOf(args.length));
+					sender.sendMessage("请输入完整指令");
 					return false;
 				}
 				if(sender instanceof Player)
@@ -133,6 +170,7 @@ public class NpcCommand extends Command
 						Player sender_=Utils.cast(sender);
 						npc=npcClass.npcClass.getConstructor(String.class,String.class,double.class,double.class,double.class,Item.class).newInstance(args[2],args[3],sender_.x,sender_.y,sender_.z,sender_.getInventory().getItemInHand());
 						npc.level=sender_.getLevel().getFolderName();
+						npc.setEquipment(sender_.getInventory().getArmorContents());
 						npc.spawnToAll();
 						npc.save();
 						sender.sendMessage("[NPC] "+TextFormat.GREEN+"NPC创建成功");
@@ -388,6 +426,26 @@ public class NpcCommand extends Command
 				}
 				break;
 			case "item":
+				npc=NPC.pool.getOrDefault(args[1],null);
+				if(npc==null)
+				{
+					sender.sendMessage("[NPC] "+TextFormat.RED+"不存在此NPC");
+					return false;
+				}
+				if(args.length<3)
+				{
+					npc.setHandItem(((Player)sender).getInventory().getItemInHand());
+					sender.sendMessage("[NPC] "+TextFormat.GREEN+"手持物品更换成功");
+					return false;
+				}
+				else
+				{
+					String[] itemData=args[2].split(":");
+					npc.setHandItem(Item.get(Integer.parseInt(itemData[0]),Integer.parseInt(itemData.length<2?"0":itemData[1])));
+					sender.sendMessage("[NPC] "+TextFormat.GREEN+"手持物品更换成功");
+				}
+				break;
+			case "scale":
 				if(args.length<3)
 				{
 					return false;
@@ -399,9 +457,8 @@ public class NpcCommand extends Command
 				}
 				else
 				{
-					String[] itemData=args[2].split(":");
-					npc.setHandItem(Item.get(Integer.parseInt(itemData[0]),Integer.parseInt(itemData.length<2?"0":itemData[1])));
-					sender.sendMessage("[NPC] "+TextFormat.GREEN+"手持物品更换成功");
+					npc.setScale(Float.valueOf(args[2]));
+					sender.sendMessage("[NPC] "+TextFormat.GREEN+"NPC大小更换成功");
 				}
 				break;
 			case "tphere":
@@ -424,24 +481,29 @@ public class NpcCommand extends Command
 					sender.sendMessage("[NPC] "+TextFormat.RED+"请在游戏中使用这个指令");
 				}
 				break;
-			default:
 			case "help":
-				sender.sendMessage(TextFormat.GREEN+"===NPC系统指令帮助===\n"+
-					TextFormat.GREEN+"所有指令前面必须加/fnpc \n"+
-					TextFormat.YELLOW+"add <Type> <ID> <Name> - 添加一个NPC\n"+
-					TextFormat.YELLOW+"type - 列出可用的Type类型\n"+
-					TextFormat.YELLOW+"remove <ID> - 移除一个NPC\n"+
-					TextFormat.YELLOW+"skin <ID> <File> - 设置NPC皮肤\n"+
-					TextFormat.YELLOW+"name <ID> <Name> - 设置NPC名称\n"+
-					TextFormat.YELLOW+"command <ID> <add/remove> <Command> - 添加/删除NPC指令\n"+
-					TextFormat.YELLOW+"command <ID> list - 列出NPC指令\n"+
-					TextFormat.YELLOW+"tphere <ID> - 把NPC传送过来\n"+
-					TextFormat.YELLOW+"teleport <ID> - 设置NPC传送目标为你的位置\n"+
-					TextFormat.YELLOW+"transfer <ID> <IP> <Port> - 设置NPC跨服传送\n"+
-					TextFormat.YELLOW+"reset <ID> - 重置NPC的设置\n"+
-					TextFormat.YELLOW+"chat <ID> <add/remove> <Chat> - 添加/删除NPC对话数据\n"+
-					TextFormat.YELLOW+"item <ID> <Item[:Damage]> - 设置NPC手持物品\n"+
-					TextFormat.YELLOW+"help - 查看帮助");
+			{
+				sender.sendMessage(TextFormat.GREEN + "===NPC系统指令帮助===\n" +
+						TextFormat.GREEN + "所有指令前面必须加/fnpc \n" +
+						TextFormat.YELLOW + "add <Type> <ID> <Name> - 添加一个NPC\n" +
+						TextFormat.YELLOW + "type - 列出可用的Type类型\n" +
+						TextFormat.YELLOW + "remove <ID> - 移除一个NPC\n" +
+						TextFormat.YELLOW + "equipment <ID> - 设置这个NPC身上装备为你身上的\n" +
+						TextFormat.YELLOW + "skin <ID> <File> - 设置NPC皮肤\n" +
+						TextFormat.YELLOW + "scale <ID> <Value> - 设置NPC尺寸\n" +
+						TextFormat.YELLOW + "name <ID> <Name> - 设置NPC名称\n" +
+						TextFormat.YELLOW + "command <ID> <add/remove> <Command> - 添加/删除NPC指令\n" +
+						TextFormat.YELLOW + "command <ID> list - 列出NPC指令\n" +
+						TextFormat.YELLOW + "tphere <ID> - 把NPC传送过来\n" +
+						TextFormat.YELLOW + "teleport <ID> - 设置NPC传送目标为你的位置\n" +
+						TextFormat.YELLOW + "transfer <ID> <IP> <Port> - 设置NPC跨服传送\n" +
+						TextFormat.YELLOW + "reset <ID> - 重置NPC的设置\n" +
+						TextFormat.YELLOW + "chat <ID> <add/remove> <Chat> - 添加/删除NPC对话数据\n" +
+						TextFormat.YELLOW + "item <ID> [<Item[:Damage]>] - 设置NPC手持物品\n" +
+						TextFormat.YELLOW + "help - 查看帮助");
+			}
+					break;
+			default:
 				break;
 			}
 		}

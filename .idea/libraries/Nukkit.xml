@@ -1,13 +1,9 @@
 <component name="libraryTable">
   <library name="Nukkit">
     <CLASSES>
-      <root url="file://$PROJECT_DIR$/../../Nukkit" />
+      <root url="jar://E:/nk插件/SAd/nukkit/Nukkit.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES>
-      <root url="file://$PROJECT_DIR$/../../Nukkit/src/main/java" />
-      <root url="file://$PROJECT_DIR$/../../Nukkit/src/test/java" />
-    </SOURCES>
-    <jarDirectory url="file://$PROJECT_DIR$/../../Nukkit" recursive="false" />
+    <SOURCES />
   </library>
 </component>

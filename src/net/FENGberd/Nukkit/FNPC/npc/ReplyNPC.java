@@ -2,7 +2,6 @@ package net.FENGberd.Nukkit.FNPC.npc;
 
 import cn.nukkit.Player;
 import cn.nukkit.item.Item;
-import net.FENGberd.Nukkit.FNPC.Main;
 import net.FENGberd.Nukkit.FNPC.utils.Utils;
 
 import java.util.ArrayList;
@@ -14,14 +13,22 @@ public class ReplyNPC extends NPC
 {
 	public ArrayList<String> chat=new ArrayList<>();
 
-	public ReplyNPC(String nid,String nametag,double x,double y,double z,Item handItem)
+	public ReplyNPC(String nid,String nametag,double x,double y,double z,Item handItem,Item[] equipment)
 	{
-		super(nid,nametag,x,y,z,handItem);
+		super(nid,nametag,x,y,z,handItem,equipment);
 	}
 
 	public ReplyNPC(String nid,String nametag,double x,double y,double z)
 	{
-		this(nid,nametag,x,y,z,null);
+		this(nid,nametag,x,y,z,null,null);
+	}
+
+	public ReplyNPC(String nid,String nametag,double x,double y,double z,Item[] equipment){
+		this(nid,nametag,x,y,z,null,equipment);
+	}
+
+	public ReplyNPC(String nid,String nametag,double x,double y,double z,Item handItem){
+		this(nid,nametag,x,y,z,handItem,null);
 	}
 
 	public ReplyNPC(String nid)

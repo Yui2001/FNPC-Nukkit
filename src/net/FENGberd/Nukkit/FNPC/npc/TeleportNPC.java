@@ -2,12 +2,12 @@ package net.FENGberd.Nukkit.FNPC.npc;
 
 import cn.nukkit.Player;
 import cn.nukkit.item.Item;
-import cn.nukkit.level.*;
+import cn.nukkit.level.Level;
+import cn.nukkit.level.Position;
 import cn.nukkit.math.Vector3;
+import cn.nukkit.network.protocol.TransferPacket;
 import cn.nukkit.utils.TextFormat;
-
 import net.FENGberd.Nukkit.FNPC.Main;
-import net.FENGberd.Nukkit.FNPC.protocol.StrangePacket;
 import net.FENGberd.Nukkit.FNPC.utils.Utils;
 
 import java.util.HashMap;
@@ -17,15 +17,25 @@ public class TeleportNPC extends NPC
 {
 	HashMap<String,Object> teleport=new HashMap<>();
 
-	public TeleportNPC(String nid,String nametag,double x,double y,double z,Item handItem)
+	public TeleportNPC(String nid,String nametag,double x,double y,double z,Item handItem,Item[] equipment)
 	{
-		super(nid,nametag,x,y,z,handItem);
+		super(nid,nametag,x,y,z,handItem,equipment);
+	}
+
+	public TeleportNPC(String nid,String nametag,double x,double y,double z,Item[] equipment){
+		this(nid,nametag,x,y,z,null,equipment);
+	}
+
+	public TeleportNPC(String nid,String nametag,double x,double y,double z,Item handItem){
+		this(nid,nametag,x,y,z,handItem,null);
 	}
 
 	public TeleportNPC(String nid,String nametag,double x,double y,double z)
 	{
-		this(nid,nametag,x,y,z,null);
+		this(nid,nametag,x,y,z,null,null);
 	}
+
+
 
 	public TeleportNPC(String nid)
 	{
@@ -37,7 +47,7 @@ public class TeleportNPC extends NPC
 	{
 		if(this.teleport.getOrDefault("ip",null)!=null && this.teleport.getOrDefault("port",null)!=null)
 		{
-			StrangePacket pk=new StrangePacket();
+			TransferPacket pk=new TransferPacket();
 			pk.address=Utils.cast(this.teleport.getOrDefault("ip",""));
 			pk.port=Short.parseShort(Utils.cast(this.teleport.getOrDefault("port",0)));
 			player.dataPacket(pk);

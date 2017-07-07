@@ -1,32 +1,41 @@
 package net.FENGberd.Nukkit.FNPC;
 
-import java.util.*;
-
-import cn.nukkit.*;
-import cn.nukkit.item.*;
-import cn.nukkit.event.*;
-import cn.nukkit.utils.*;
-import cn.nukkit.command.*;
-import cn.nukkit.command.data.*;
-import cn.nukkit.event.player.*;
-import cn.nukkit.event.server.*;
-import cn.nukkit.network.protocol.*;
-import cn.nukkit.command.data.args.*;
-
-import net.FENGberd.Nukkit.FNPC.npc.*;
-import net.FENGberd.Nukkit.FNPC.utils.*;
-import net.FENGberd.Nukkit.FNPC.tasks.*;
-import net.FENGberd.Nukkit.FNPC.commands.*;
+import cn.nukkit.command.data.CommandDataVersions;
+import cn.nukkit.command.data.CommandParameter;
+import cn.nukkit.command.data.args.CommandArg;
+import cn.nukkit.command.data.args.CommandArgBlockVector;
+import cn.nukkit.event.EventHandler;
+import cn.nukkit.event.EventPriority;
+import cn.nukkit.event.player.PlayerCommandPreprocessEvent;
+import cn.nukkit.event.server.DataPacketReceiveEvent;
+import cn.nukkit.event.server.DataPacketSendEvent;
+import cn.nukkit.network.protocol.AvailableCommandsPacket;
+import cn.nukkit.network.protocol.CommandStepPacket;
+import co.aikar.timings.Timings;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import net.FENGberd.Nukkit.FNPC.commands.NpcCommand;
+import net.FENGberd.Nukkit.FNPC.npc.CommandNPC;
+import net.FENGberd.Nukkit.FNPC.npc.NPC;
+import net.FENGberd.Nukkit.FNPC.npc.ReplyNPC;
+import net.FENGberd.Nukkit.FNPC.npc.TeleportNPC;
+import net.FENGberd.Nukkit.FNPC.tasks.QuickSystemTask;
+import net.FENGberd.Nukkit.FNPC.utils.RegisteredNPC;
 import net.FENGberd.Nukkit.FNPC.utils.Utils;
 
-import com.google.gson.*;
-import co.aikar.timings.Timings;
+import java.util.HashMap;
+import java.util.Map;
 
 @SuppressWarnings("unused")
 public class Main extends cn.nukkit.plugin.PluginBase implements cn.nukkit.event.Listener
 {
 	private static Main obj=null;
 	private static HashMap<String,RegisteredNPC> registeredNPC=new HashMap<>();
+	/**
+	 * 静态分割线********************************
+	 */
+
+	 NpcCommand npcCommand=null;
 
 	public static Main getInstance()
 	{
@@ -69,12 +78,6 @@ public class Main extends cn.nukkit.plugin.PluginBase implements cn.nukkit.event
 		}
 		return false;
 	}
-
-	/**
-	 * 静态分割线********************************
-	 */
-	 
-	 NpcCommand npcCommand=null;
 	
 	@Override
 	public void onEnable()
@@ -91,8 +94,7 @@ public class Main extends cn.nukkit.plugin.PluginBase implements cn.nukkit.event
 		Utils.loadLang(this.getServer().getLanguage());
 		QuickSystemTask quickSystemTask=new QuickSystemTask(this);
 		npcCommand=new NpcCommand();
-		this.getServer().getCommandMap().register("FNPC",npcCommand);
-		
+		this.getServer().getCommandMap().register("fnpc",npcCommand);
 		this.getServer().getPluginManager().registerEvents(this,this);
 		this.getServer().getScheduler().scheduleRepeatingTask(quickSystemTask,1);
 	}
@@ -112,7 +114,7 @@ public class Main extends cn.nukkit.plugin.PluginBase implements cn.nukkit.event
 			if(pk.command.startsWith("fnpc "))
 			{
 				String commandText=pk.command;
-				if(pk.args!=null)
+				//if(pk.args!=null) 这个判断使/fnpc help 和/fnpc type 无法使用
 				{
 					CommandParameter[] pars=npcCommand.getCommandParameters(pk.overload);
 					if(pars!=null)
@@ -145,7 +147,7 @@ public class Main extends cn.nukkit.plugin.PluginBase implements cn.nukkit.event
 							}
 						}
 					}
-					this.getLogger().warning(commandText);
+					//this.getLogger().warning(commandText);
 					PlayerCommandPreprocessEvent playerCommandPreprocessEvent=new PlayerCommandPreprocessEvent(event.getPlayer(),"/"+commandText);
 					this.getServer().getPluginManager().callEvent(playerCommandPreprocessEvent);
 					if(!playerCommandPreprocessEvent.isCancelled())

@@ -13,14 +13,22 @@ public class CommandNPC extends NPC
 {
 	public ArrayList<String> command=new ArrayList<>();
 
-	public CommandNPC(String nid,String nametag,double x,double y,double z,Item handItem)
+	public CommandNPC(String nid,String nametag,double x,double y,double z,Item handItem,Item[] equipment)
 	{
-		super(nid,nametag,x,y,z,handItem);
+		super(nid,nametag,x,y,z,handItem,equipment);
 	}
 
 	public CommandNPC(String nid,String nametag,double x,double y,double z)
 	{
-		this(nid,nametag,x,y,z,null);
+		this(nid,nametag,x,y,z,null,null);
+	}
+
+	public CommandNPC(String nid,String nametag,double x,double y,double z,Item[] equipment){
+		this(nid,nametag,x,y,z,null,equipment);
+	}
+
+	public CommandNPC(String nid,String nametag,double x,double y,double z,Item handItem){
+		this(nid,nametag,x,y,z,handItem,null);
 	}
 
 	public CommandNPC(String nid)
