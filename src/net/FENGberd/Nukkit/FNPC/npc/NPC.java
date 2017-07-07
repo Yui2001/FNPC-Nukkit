@@ -1,19 +1,23 @@
 package net.FENGberd.Nukkit.FNPC.npc;
 
-import cn.nukkit.*;
-import cn.nukkit.item.*;
-import cn.nukkit.math.*;
-import cn.nukkit.utils.*;
-import cn.nukkit.level.*;
-import cn.nukkit.entity.*;
-import cn.nukkit.entity.data.*;
+import cn.nukkit.Player;
+import cn.nukkit.Server;
+import cn.nukkit.entity.Entity;
+import cn.nukkit.entity.data.EntityMetadata;
+import cn.nukkit.entity.data.Skin;
+import cn.nukkit.item.Item;
+import cn.nukkit.item.enchantment.Enchantment;
+import cn.nukkit.level.Level;
+import cn.nukkit.level.Position;
+import cn.nukkit.math.Vector3;
 import cn.nukkit.network.protocol.*;
-
-import net.FENGberd.Nukkit.FNPC.*;
-import net.FENGberd.Nukkit.FNPC.utils.*;
+import cn.nukkit.utils.Config;
+import cn.nukkit.utils.TextFormat;
+import net.FENGberd.Nukkit.FNPC.Main;
+import net.FENGberd.Nukkit.FNPC.utils.RegisteredNPC;
 import net.FENGberd.Nukkit.FNPC.utils.Utils;
 
-import java.io.*;
+import java.io.File;
 import java.util.*;
 
 @SuppressWarnings("unused")
@@ -23,6 +27,56 @@ public class NPC extends cn.nukkit.level.Location
 	public static Config config;
 	public static DataPacket packet_hash;
 	public static HashMap<String,HashMap<String,Object>> unknownTypeData=new HashMap<>();
+	/**
+	 * 静态分割线********************************
+	 */
+
+	public String nametag="";
+	public float scale = 1f;
+	public Item handItem=null;
+	public Item[] equipment = new Item[4];
+	public String skinpath="";
+	public boolean isSlim=false;
+	public String level="";
+	public UUID uuid=null;
+	public String extra="";
+	public Skin skin=new Skin(new byte[Skin.SINGLE_SKIN_SIZE],"Standard_Custom");
+	protected long eid=0;
+	protected String nid="";
+	public NPC(String nid,String nametag,double x,double y,double z,Item handItem,Item[] equipment)
+	{
+		this.nid=nid;
+		this.nametag=nametag;
+		this.x=x;
+		this.y=y;
+		this.z=z;
+		this.handItem=handItem==null?Item.get(0):handItem;
+		this.uuid=new UUID(new Random().nextLong(),new Random().nextLong());
+		this.eid=Entity.entityCount++;
+		NPC existsCheck=NPC.pool.getOrDefault(nid,null);
+		if(existsCheck!=null)
+		{
+			Main.getInstance().getLogger().warning(TextFormat.YELLOW+"警告:尝试创建ID重复NPC:"+TextFormat.AQUA+nid+TextFormat.YELLOW+" ,请检查是否出现逻辑错误");
+			existsCheck.close();
+		}
+		NPC.pool.put(nid,this);
+	}
+	public NPC(String nid,String nametag,double x,double y,double z)
+	{
+		this(nid,nametag,x,y,z,null,null);
+	}
+	public NPC(String nid,String nametag,double x,double y,double z,Item handItem)
+	{
+		this(nid,nametag,x,y,z,handItem,null);
+	}
+	public NPC(String nid,String nametag,double x,double y,double z,Item[] equipment)
+	{
+		this(nid,nametag,x,y,z,null,equipment);
+	}
+	public NPC(String nid)
+	{
+		this(nid,"",0,0,0);
+	}
 
 	public static void reloadUnknownNPC()
 	{
@@ -110,50 +164,6 @@ public class NPC extends cn.nukkit.level.Location
 		NPC.pool.values().stream().filter(npc->npc.distance(player)<=10).forEach(npc->npc.look(player));
 	}
 
-	/**
-	 * 静态分割线********************************
-	 */
-
-	public String nametag="";
-	protected long eid=0;
-	public Item handItem=null;
-	public String skinpath="";
-	public boolean isSlim=false;
-	protected String nid="";
-	public String level="";
-	public UUID uuid=null;
-	public String extra="";
-	public Skin skin=new Skin(new byte[Skin.SINGLE_SKIN_SIZE],"Standard_Custom");
-
-	public NPC(String nid,String nametag,double x,double y,double z,Item handItem)
-	{
-		this.nid=nid;
-		this.nametag=nametag;
-		this.x=x;
-		this.y=y;
-		this.z=z;
-		this.handItem=handItem==null?Item.get(0):handItem;
-		this.uuid=new UUID(new Random().nextLong(),new Random().nextLong());
-		this.eid=Entity.entityCount++;
-		NPC existsCheck=NPC.pool.getOrDefault(nid,null);
-		if(existsCheck!=null)
-		{
-			Main.getInstance().getLogger().warning(TextFormat.YELLOW+"警告:尝试创建ID重复NPC:"+TextFormat.AQUA+nid+TextFormat.YELLOW+" ,请检查是否出现逻辑错误");
-			existsCheck.close();
-		}
-		NPC.pool.put(nid,this);
-	}
-
-	public NPC(String nid,String nametag,double x,double y,double z)
-	{
-		this(nid,nametag,x,y,z,null);
-	}
-
-	public NPC(String nid)
-	{
-		this(nid,"",0,0,0);
-	}
-
 	public void look(Player player)
 	{
 		double x=this.x-player.x, y=this.y-player.y, z=this.z-player.z;
@@ -185,10 +195,42 @@ public class NPC extends cn.nukkit.level.Location
 			this.yaw=Utils.cast(cfg.getOrDefault("yaw",0));
 			this.pitch=Utils.cast(cfg.getOrDefault("pitch",0));
 			this.nametag=Utils.cast(cfg.getOrDefault("nametag",""));
+			this.scale =Utils.cast(Float.valueOf(cfg.getOrDefault("scale",0).toString()));
 			this.skin.setModel(String.valueOf(cfg.getOrDefault("skinName",this.skin.getModel())));
 			this.extra=String.valueOf(cfg.getOrDefault("extra",""));
 			HashMap<String,Object> itemCfg=Utils.cast(cfg.getOrDefault("handItem",new HashMap<String,Object>()));
-			this.handItem=Item.get(Utils.cast(itemCfg.getOrDefault("id",0)),Utils.cast(itemCfg.getOrDefault("data",0)));
+			Item handitem = Item.get(Utils.cast(itemCfg.getOrDefault("id",0)),Utils.cast(itemCfg.getOrDefault("data",0)));
+			if((boolean)itemCfg.get("isEnchant")){
+				if(itemCfg.containsKey("Enchants")){
+					Map<Integer,Integer> enchants = (Map<Integer, Integer>) itemCfg.get("Enchants");
+					for(Integer id:enchants.keySet()){
+						Enchantment enchantment = Enchantment.getEnchantment(id);
+						enchantment.setLevel(enchants.get(id));
+						handitem.addEnchantment(enchantment);
+					}
+				}
+			}
+			this.handItem=handitem;
+			HashMap<String,Object> equipmentCfg=Utils.cast(cfg.getOrDefault("equipment",new HashMap<String,Object>()));
+			String[] equipments = new String[]{"helmet","chestplate","leggings","boots"};
+			Item[] equipment = new Item[4];
+			for(int i=0;i<4;i++){
+				HashMap<String,Object> content = (HashMap)equipmentCfg.get(equipments[i]);
+				Item item = Item.get((int)content.get("id"));
+				if((boolean)content.get("isEnchant")){
+					if(!content.containsKey("Enchants")){
+						continue;
+					}
+					Map<Integer,Integer> enchants = (Map<Integer, Integer>) content.get("Enchants");
+					for(Integer id:enchants.keySet()){
+						Enchantment enchantment = Enchantment.getEnchantment(id);
+						enchantment.setLevel(enchants.get(id));
+						item.addEnchantment(enchantment);
+					}
+				}
+				equipment[i] = item;
+			}
+			this.equipment= equipment;
 			byte[] skinData=Utils.getPngSkin(new File(Main.getInstance().getDataFolder().toString()+"/skins/"+String.valueOf(cfg.getOrDefault("skin",""))));
 			if(skinData.length>0)
 			{
@@ -241,6 +283,12 @@ public class NPC extends cn.nukkit.level.Location
 		this.spawnToAll();
 	}
 
+	public void setEquipment(Item[] armor){
+		this.equipment = armor;
+		this.save();
+		this.spawnToAll();
+	}
+
 	public void close()
 	{
 		this.close(true);
@@ -262,9 +310,23 @@ public class NPC extends cn.nukkit.level.Location
 		return this.eid;
 	}
 
+	public float getScale(){
+		return this.scale;
+	}
+
+	public void setScale(float scale){
+		this.scale = scale;
+		this.save();
+		this.spawnToAll();
+	}
+
 	public Skin getSkin()
 	{
 		return this.skin;
+	}
+
+	public void setSkin(Skin skin){
+		this.skin = skin;
 	}
 
 	public String getSkinPath()
@@ -325,12 +387,35 @@ public class NPC extends cn.nukkit.level.Location
 		extra.put("pitch",this.pitch);
 		extra.put("skin",this.skinpath);
 		extra.put("nametag",this.nametag);
+		extra.put("scale",this.scale);
 		extra.put("skinName",this.skin.getModel());
 		extra.put("extra",this.extra);
 		HashMap<String,Object> handItem=new HashMap<>();
 		handItem.put("id",this.handItem.getId());
 		handItem.put("data",this.handItem.getDamage());
+		handItem.put("isEnchant",this.handItem.hasEnchantments());
+		HashMap<Integer,Integer> Itemenchants = new HashMap<>();
+		if(this.handItem.hasEnchantments()){
+			for (Enchantment enchantment:this.handItem.getEnchantments()){
+				Itemenchants.put(enchantment.getId(),enchantment.getLevel());
+			}
+		}
+		handItem.put("Enchants",Itemenchants);
 		extra.put("handItem",handItem);
+		HashMap<String,Object> equipment=new HashMap<>();
+		String[] equipments = new String[]{"helmet","chestplate","leggings","boots"};
+		for(int i =0;i<4;i++){
+			HashMap<String,Object> content=new HashMap<>();
+			content.put("isEnchant",this.equipment[i].hasEnchantments());
+			HashMap<Integer,Integer> enchants = new HashMap<>();
+			for (Enchantment enchantment:this.equipment[i].getEnchantments()){
+				enchants.put(enchantment.getId(),enchantment.getLevel());
+			}
+			content.put("Enchants",enchants);
+			content.put("id",this.equipment[i].getId());
+			equipment.put(equipments[i],content);
+		}
+		extra.put("equipment",equipment);
 		NPC.config.set(this.getId(),extra);
 		NPC.config.save();
 	}
@@ -419,24 +504,31 @@ public class NPC extends cn.nukkit.level.Location
 			.putShort(Entity.DATA_MAX_AIR,400)
 			.putString(Entity.DATA_NAMETAG,this.nametag)
 			.putLong(Entity.DATA_LEAD_HOLDER_EID,-1)
-			.putFloat(Entity.DATA_SCALE,1f);
+			.putFloat(Entity.DATA_SCALE,scale);
 		player.dataPacket(pk);
 		Server.getInstance().removePlayerListData(this.uuid,new Player[]{player});
-		// TODO: custom armors
-		Item[] armor=new Item[]
-		{
-			Item.get(Item.AIR),
-			Item.get(Item.AIR),
-			Item.get(Item.AIR),
-			Item.get(Item.AIR)
-		};
-        MobArmorEquipmentPacket armorPk=new MobArmorEquipmentPacket();
-        armorPk.eid=this.getEID();
-        armorPk.slots=armor;
-        armorPk.encode();
-        armorPk.isEncoded=true;
-		player.dataPacket(armorPk);
+		Item[] armor= this.equipment;
+        sendEquipments(armor,player);
+        if(this.skinpath.equals("")){
+        	setSkin(player.getSkin());
+		}
 		return true;
+	}
+
+	public void sendEquipments(Item[] armor,Player player){
+		MobArmorEquipmentPacket armorPk=new MobArmorEquipmentPacket();
+		armorPk.eid=this.getEID();
+		armorPk.slots=armor;
+		armorPk.encode();
+		armorPk.isEncoded=true;
+		player.dataPacket(armorPk);
+	}
+
+	public void sendEquipmentToAll(Item[] armor){
+		for(Object p:Main.getInstance().getServer().getOnlinePlayers().values())
+		{
+			sendEquipments(armor,((Player)p));
+		}
 	}
 
 	public void sendPosition()
